@@ -1,0 +1,33 @@
+dockerfile: apps/web/Dockerfile
+port: 3000
+health_path: /health
+services:
+  # The default image is pgvector; Formbricks' migrations run CREATE EXTENSION vector themselves.
+  - postgres
+  - redis
+env:
+  # DATABASE_URL and REDIS_URL come from the services. All secrets below are throwaway values.
+  WEBAPP_URL: http://localhost:3000
+  NEXTAUTH_URL: http://localhost:3000
+  NEXTAUTH_SECRET: 1b8a60a2eef6a27764133bb04c1b3dc840f7ee4158795fe5a51ad3fa12e71daf
+  ENCRYPTION_KEY: fc2efa80fb170f237609ecc76e068757340db66c4e42fb9352494f56108631c4
+  CRON_SECRET: d4406608a3b4a09f176b60e4103f65a87f3cfa8a5a223efce7465e856cc8f390
+  # Required by env validation; Hub and Cube are not run in the check.
+  HUB_API_URL: http://localhost:8080
+  HUB_API_KEY: opslane-placeholder
+  CUBEJS_API_URL: http://localhost:4000
+  CUBEJS_API_SECRET: opslane-placeholder
+  EMAIL_VERIFICATION_DISABLED: "1"
+  PASSWORD_RESET_DISABLED: "1"
+  TELEMETRY_DISABLED: "1"
+migrate: cd /home/nextjs && node packages/database/dist/scripts/apply-migrations.js
+seed: cd /home/nextjs && NODE_PATH=/home/nextjs/node_modules node /opslane/seed.cjs
+verify_setup:
+  instructions: |
+    Seeded login: admin@formbricks.local / OpslaneVerify123! (email verified), owner of
+    organization "Opslane Org" with one workspace, "Opslane Workspace". Sign in at /auth/login;
+    you land on that workspace's surveys page, which is empty (no surveys are seeded).
+notes: |
+  The image's start script migrates on boot; migrate runs the same script first because the seed
+  needs the schema (one-shots bypass the entrypoint). The seed script is .opslane/seed.cjs in the
+  repo, mounted at /opslane; apps/web/Dockerfile is unchanged.
